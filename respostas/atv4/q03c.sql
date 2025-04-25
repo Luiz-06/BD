@@ -1,8 +1,25 @@
-/*c) Crie um trigger que sempre que houver inserções, remoções ou alterações na tabela
-"Item_pedido", haja a atualização da "quant_itens_pedidos" e do "valor_total_pedido" da
-tabela "pedido", bem como a atualização da quantidade em estoque da tabela Livro.*/
+/**/
 
+CREATE FUNCTION denunciaAnonima() RETURNS TRIGGER 
+AS $$
+    BEGIN 
+        IF TG_OP = 'UPDATE' THEN
+            INSERT INTO CONTROLE_DE_ALTERACAO 
+            (OPERACAO, DATA_HORA, USUARIO_QUE_ALTEROU, COD_ANTIGO, COD_NOVO, ESTOQUE_ANTIGO, ESTOQUE_NOVO)
+            VALUES 
+            ('U', CURRENT_TIMESTAMP, CURRENT_USER, OLD.COD_LIVRO, NEW.COD_LIVRO, OLD.QTD_ESTOQUE, NEW.QTD_ESTOQUE);
+        END IF;
 
+        IF TG_OP = 'DELETE' THEN
+            INSERT INTO CONTROLE_DE_ALTERACAO 
+            (OPERACAO, DATA_HORA, USUARIO_QUE_ALTEROU, COD_ANTIGO, COD_NOVO, ESTOQUE_ANTIGO, ESTOQUE_NOVO)
+            VALUES 
+            ('D', CURRENT_TIMESTAMP, CURRENT_USER, OLD.COD_LIVRO, NULL, OLD.QTD_ESTOQUE, NULL);
+        END IF;
+
+    RETURN NULL;
+    END;
+$$ LANGUAGE plpgsql;
 
 CREATE TABLE TITULO (
     COD_TITULO SERIAL PRIMARY KEY, 
@@ -41,4 +58,18 @@ CREATE TABLE ITEM_PEDIDO (
     FOREIGN KEY (COD_LIVRO) REFERENCES LIVRO(COD_LIVRO)
 );
 
+CREATE TABLE CONTROLE_DE_ALTERACAO (
+    OPERACAO VARCHAR(1),
+    DATA_HORA TIMESTAMP,
+    USUARIO_QUE_ALTEROU VARCHAR(100),
+    COD_ANTIGO INT, 
+    COD_NOVO INT,
+    ESTOQUE_ANTIGO INT,
+    ESTOQUE_NOVO INT
+);
 
+CREATE TRIGGER CAGUETA 
+BEFORE 
+UPDATE OR DELETE ON LIVRO
+FOR EACH ROW 
+EXECUTE FUNCTION denunciaAnonima();
