@@ -1,5 +1,3 @@
-/**/
-
 CREATE FUNCTION denunciaAnonima() RETURNS TRIGGER 
 AS $$
     BEGIN 
